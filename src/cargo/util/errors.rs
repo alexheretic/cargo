@@ -72,6 +72,40 @@ impl fmt::Display for Internal {
     }
 }
 
+/// Error related to a particular workspace member.
+pub struct WorkspaceMemberError {
+    cause: Error,
+    manifest: std::path::PathBuf,
+}
+
+impl WorkspaceMemberError {
+    pub fn new(cause: Error, manifest: std::path::PathBuf) -> Self {
+        Self { cause, manifest }
+    }
+
+    pub fn manifest_path(&self) -> &std::path::PathBuf {
+        &self.manifest
+    }
+}
+
+impl Fail for WorkspaceMemberError {
+    fn cause(&self) -> Option<&Fail> {
+        self.cause.as_fail().cause()
+    }
+}
+
+impl fmt::Debug for WorkspaceMemberError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        self.cause.fmt(f)
+    }
+}
+
+impl fmt::Display for WorkspaceMemberError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        self.cause.fmt(f)
+    }
+}
+
 // =============================================================================
 // Process errors
 #[derive(Debug, Fail)]

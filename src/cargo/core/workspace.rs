@@ -13,7 +13,7 @@ use core::{Dependency, PackageIdSpec};
 use core::{EitherManifest, Package, SourceId, VirtualManifest};
 use ops;
 use sources::PathSource;
-use util::errors::{CargoResult, CargoResultExt};
+use util::errors::{CargoResult, CargoResultExt, WorkspaceMemberError};
 use util::paths;
 use util::toml::read_manifest;
 use util::{Config, Filesystem};
@@ -495,7 +495,11 @@ impl<'cfg> Workspace<'cfg> {
         self.members.push(manifest_path.clone());
 
         let candidates = {
-            let pkg = match *self.packages.load(&manifest_path)? {
+            let pkg = match *self
+                .packages
+                .load(&manifest_path)
+                .map_err(|err| WorkspaceMemberError::new(err, manifest_path.into()))?
+            {
                 MaybePackage::Package(ref p) => p,
                 MaybePackage::Virtual(_) => return Ok(()),
             };

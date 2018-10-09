@@ -34,7 +34,7 @@ use core::{Package, Source, Target};
 use core::{PackageId, PackageIdSpec, TargetKind, Workspace};
 use ops;
 use util::config::Config;
-use util::{lev_distance, profile, CargoResult};
+use util::{errors::WorkspaceMemberError, lev_distance, profile, CargoResult};
 
 /// Contains information about how a package should be compiled.
 #[derive(Debug)]
@@ -203,7 +203,18 @@ pub fn compile_with_exec<'a>(
     exec: &Arc<Executor>,
 ) -> CargoResult<Compilation<'a>> {
     ws.emit_warnings()?;
-    compile_ws(ws, None, options, exec)
+    compile_ws(ws, None, options, exec).map_err(|err| {
+        // Add member manifest path if possible
+        let err_string = format!("{}", err);
+        if let Some(member) = ws
+            .members()
+            .find(|m| err_string.contains(&format!("`{}`", m.package_id())))
+        {
+            WorkspaceMemberError::new(err, member.manifest_path().into()).into()
+        } else {
+            err
+        }
+    })
 }
 
 pub fn compile_ws<'a>(
